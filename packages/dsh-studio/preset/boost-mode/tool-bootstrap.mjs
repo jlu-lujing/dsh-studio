@@ -1,9 +1,9 @@
 /**
- * Anchored tool bootstrap — keep the FIRST model request on the Minimal
- * preset's REAL tool schema (persistent `bash` + `str_replace_editor`), then
- * narrow the catalog to a minimal RESIDENT set once the session has produced
- * its first durable promotion signal. Injected-context control lives in the
- * companion `context-gate` plugin, not here.
+ * Boost-mode tool bootstrap — keep the FIRST model request on the Minimal
+ * preset's REAL tool schema (persistent `bash` + `str_replace_editor`), free
+ * of auto-injected workspace/skill context, then narrow the catalog to a
+ * minimal RESIDENT set once the session has produced its first durable
+ * promotion signal.
  *
  * The phase is derived from durable session events, so resume and reload
  * preserve it. By default (`promoteOn: 'either'`) a session promotes after the
@@ -20,7 +20,7 @@
  *  1. Tool schema. The API-visible first-request catalog decides whether the
  *     session anchors on the Minimal trajectory. At the adapter-default
  *     maxTokens (256000 on the official endpoint) the Minimal tool pair —
- *     persistent `bash` + `str_replace_editor` — anchored 5/5 runs with zero
+ *     persistent `bash` + `str_replace_editor` — boost-mode 5/5 runs with zero
  *     `let me` first-lines, while every standard-family schema (pwsh/read,
  *     pwsh only, sandboxed bash/read) fell into standard-like behavior
  *     (11/11). Bootstrap therefore exposes exactly the Minimal pair, not
@@ -39,19 +39,18 @@
  *     promotion — the next request's seed proposal carries the previous
  *     header's maxTokens forward, so the release must be explicit.
  *
- *  3. Injected context is NOT this plugin's concern: the companion
- *     `context-gate` plugin (shared/context-gate.mjs, mounted as the FIRST
- *     row) owns the unified injection control — runtime-context suppression
- *     on the assembly path and a claimed-baseline deny on the pre-step
- *     waterfall, both keyed to the same epoch-aware promotion phase. Mount it
- *     separately for context control alone; this file narrows only the tool
- *     catalog (plus the optional output cap below).
- *
- * SUBAGENTS: by default subagents (delegationDepth > 0) are always promoted
- * (resident catalog from their first request). `includeSubagents: true`
- * makes them follow the same bootstrap phase — their first request also sees
- * the bootstrap pair, and their own first reply or tool call promotes them.
- * Keep this flag in sync with the context-gate row's flag.
+ *  3. Injected reminders. dsh-agent-instructions and dsh-tool-skill inject
+ *     workspace instructions (AGENTS.md) and the skill catalog into the first
+ *     step as user messages whenever such content exists. With the skill
+ *     catalog present the anchor did not reproduce at all (0/9); without it
+ *     the same request reproduces at ~81%. Both message kinds are therefore
+ *     stripped during bootstrap and allowed again after promotion. The
+ *     stripped set is configurable via `suppressedContextSources` (default
+ *     `['skill-catalog', 'agent-instructions']`); an explicitly empty array
+ *     disables the context filter while keeping the tool bootstrap. A
+ *     user-initiated skill gesture (`skill-invocation`) is NOT in the default
+ *     set: it is not an automatic injection, and stripping it would lose the
+ *     skill content once the gesture scrolls out of the per-step claim.
  *
  * POST-PROMOTION RESIDENT SET (local addition, user-measured): the promoted
  * phase does NOT dump the whole Standard catalog at once — that dump pulls
@@ -77,28 +76,32 @@
  * Robustness:
  *  - Promotion decisions are memoized per session id for this process; the
  *    durable event scan runs once per session per process, then O(1).
- *  - Subagents (delegationDepth > 0) are always promoted (resident catalog)
- *    unless `includeSubagents: true`.
+ *  - Subagents (delegationDepth > 0) are always promoted (resident catalog).
  *  - A missing bootstrap tool degrades to the full catalog with a one-time
  *    warning instead of throwing, so a composition drift can never brick
  *    every request of a session.
- *  - Invalid config (bad tool lists, unknown `promoteOn`, malformed flags,
- *    non-positive `bootstrapMaxTokens`) fails at apply time, i.e. at preset
- *    mount, where it is visible and fixable.
+ *  - The pre-step context filter degrades to "keep everything" on failure:
+ *    a filter bug must never eat the user's context.
+ *  - Invalid config (bad tool lists, unknown `promoteOn`, malformed
+ *    `suppressedContextSources`, non-positive `bootstrapMaxTokens`) fails at
+ *    apply time, i.e. at preset mount, where it is visible and fixable.
  */
 
 import { createEpochPromotion } from './compaction-epoch.mjs'
 
 /** Cordis plugin name used by loader diagnostics. */
-export const name = 'anchored-tool-bootstrap'
+export const name = 'boost-tool-bootstrap'
 
 /**
  * Deliberately NO inject list: the listeners only touch services at event
- * time. Keep this row right AFTER the context-gate row in agent.cordis.yml:
- * waterfall after-next transforms apply in reverse registration order, so the
- * tool filter here must register before any plugin that touches the same
- * assembly. The optional budget listener registers with `prepend: true` so a
- * later listener can never override the first-round cap after we set it.
+ * time. Applying without an inject — combined with this row being FIRST in
+ * agent.cordis.yml — registers the plugin before dsh-agent-instructions and
+ * dsh-tool-skill, and waterfall after-next transforms apply in reverse
+ * registration order, so the first-request strip below is the LAST transform.
+ * With an inject here those plugins register first and re-inject their
+ * messages after the strip. The pre-step listener additionally registers with
+ * `prepend: true` so the strip stays the outermost transform even against
+ * host-plane listeners and future row reordering.
  */
 export const inject = []
 
@@ -109,17 +112,13 @@ const PROMOTE_EVENTS = {
   either: ['tool/call', 'assistant/message'],
 }
 
-/** Every config key this plugin accepts — anything else is a typo. */
-const ALLOWED_KEYS = new Set(['bootstrapTools', 'promoteOn', 'bootstrapMaxTokens', 'compactionTools', 'includeSubagents'])
-
-/** Validate an optional boolean flag with a default. */
-function booleanOption(value, field, fallback) {
-  if (value === undefined) return fallback
-  if (typeof value !== 'boolean') {
-    throw new TypeError(`${name}: ${field} must be a boolean`)
-  }
-  return value
-}
+/**
+ * Context sources stripped from the first request by default. Both are
+ * automatic `agent/pre-step` injections: the available-skills reminder
+ * (`skill-catalog`) and the AGENTS.md/CLAUDE.md workspace digest
+ * (`agent-instructions`). True Minimal mounts neither plugin.
+ */
+const DEFAULT_SUPPRESSED_SOURCES = ['skill-catalog', 'agent-instructions']
 
 /**
  * The default first-request catalog: the OFFICIAL Minimal preset's exact tool
@@ -151,6 +150,19 @@ function parsePromoteOn(value) {
 }
 
 /**
+ * Validate the suppressed context sources. Unlike the bootstrap tool lists,
+ * an explicitly empty array is meaningful: it disables the context filter
+ * while keeping the tool bootstrap.
+ */
+function sourceList(value, field, fallback) {
+  if (value === undefined) return new Set(fallback)
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string' || item.length === 0)) {
+    throw new TypeError(`${name}: ${field} must be an array of non-empty strings`)
+  }
+  return new Set(value)
+}
+
+/**
  * Validate the optional first-request output cap. `undefined` means NO cap:
  * the Minimal tool schema anchors at the adapter-default maxTokens, and the
  * cap's delivery is profile-package dependent (see the header note), so it is
@@ -166,26 +178,16 @@ function optionalPositiveInt(value, field) {
 
 /** Register the per-session bootstrap filters. */
 export function apply(ctx, config) {
-  const source = config === undefined ? {} : config
-  if (typeof source !== 'object' || source === null || Array.isArray(source)) {
-    throw new TypeError(`${name}: config must be an object`)
-  }
-  const unknown = Object.keys(source).filter((key) => !ALLOWED_KEYS.has(key))
-  if (unknown.length > 0) {
-    throw new TypeError(
-      `${name}: unknown config key(s) ${unknown.join(', ')} — allowed keys: ${[...ALLOWED_KEYS].sort().join(', ')}`,
-    )
-  }
-  const bootstrapTools = stringList(source.bootstrapTools, 'bootstrapTools')
-  const promoteEvents = parsePromoteOn(source.promoteOn)
-  const bootstrapMaxTokens = optionalPositiveInt(source.bootstrapMaxTokens, 'bootstrapMaxTokens')
-  const includeSubagents = booleanOption(source.includeSubagents, 'includeSubagents', false)
+  const bootstrapTools = stringList(config.bootstrapTools, 'bootstrapTools')
+  const promoteEvents = parsePromoteOn(config.promoteOn)
+  const bootstrapMaxTokens = optionalPositiveInt(config.bootstrapMaxTokens, 'bootstrapMaxTokens')
+  const suppressedSources = sourceList(config.suppressedContextSources, 'suppressedContextSources', DEFAULT_SUPPRESSED_SOURCES)
   // Core work set exposed after a compaction, before re-promotion. Empty
   // means "no compaction recovery catalog": the session stays on the
   // bootstrap pair until a new promotion signal.
-  const compactionTools = stringListOrEmpty(source.compactionTools, 'compactionTools')
+  const compactionTools = stringListOrEmpty(config.compactionTools, 'compactionTools')
 
-  const promotion = createEpochPromotion(promoteEvents, { includeSubagents })
+  const promotion = createEpochPromotion(promoteEvents)
   ctx.on('session/event', (session, event) => promotion.observe(session, event))
 
   let warned = false
@@ -255,9 +257,7 @@ export function apply(ctx, config) {
         return keepTools(assembled, keep, false)
       }
       // Controlled phase: the bootstrap pair; after a compaction, plus the
-      // compaction work set so mid-task work can continue. Context control is
-      // NOT here: the companion `context-gate` plugin owns it (see the header
-      // note), so this filter touches only the tool catalog.
+      // compaction work set so mid-task work can continue.
       const { boundary } = status
       const keep = new Set(bootstrapTools)
       if (boundary >= 0) for (const toolName of compactionTools) keep.add(toolName)
@@ -298,4 +298,28 @@ export function apply(ctx, config) {
       }
     }, { prepend: true })
   }
+
+  // Strip first-step injected reminders (skill catalog, AGENTS.md) during
+  // bootstrap. Because this listener is the first registered (see the inject
+  // note, the row order in agent.cordis.yml, and `prepend` below), the strip
+  // is the final waterfall transform and actually removes what later
+  // listeners inject.
+  ctx.on('agent/pre-step', async ({ agent }, next) => {
+    // Downstream errors propagate untouched; only this filter's own logic is guarded.
+    const decision = await next()
+    if (decision.kind === 'reject') return decision
+    try {
+      if (promotion.status(agent).promoted || suppressedSources.size === 0) return decision
+      if (!Array.isArray(decision.messages)) return decision
+      const kept = decision.messages.filter((message) => {
+        const kind = message?.source?.kind
+        return typeof kind !== 'string' || !suppressedSources.has(kind)
+      })
+      return kept.length === decision.messages.length ? decision : { ...decision, messages: kept }
+    } catch (error) {
+      // A filter bug must never eat context: degrade to keeping every message.
+      warnOnce(`${name}: pre-step context filter failed, keeping injected context: ${String((error && error.message) || error)}`)
+      return decision
+    }
+  }, { prepend: true })
 }

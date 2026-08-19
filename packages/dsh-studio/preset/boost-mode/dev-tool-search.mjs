@@ -1,6 +1,6 @@
 /**
  * dev-tool-search — on-demand tool discovery and unlock, the tool-search
- * pattern for the anchored preset.
+ * pattern for the boost-mode preset.
  *
  * The promoted phase keeps only a minimal resident set (shell +
  * str_replace_editor + the discovery tools) instead of dumping the whole
@@ -80,7 +80,7 @@ export function apply(ctx) {
       schema: { type: 'object', additionalProperties: false, properties: { text: { type: 'string' } }, required: ['text'] },
       render: (_a, v) => [{ type: 'text', text: v.text }],
     },
-    async execute(args, exec) {
+    async execute(args) {
       const query = typeof args.query === 'string' ? args.query.trim() : ''
       const unlock = Array.isArray(args.toolNames) ? args.toolNames.filter((name) => typeof name === 'string' && name.length > 0) : []
 
@@ -97,28 +97,21 @@ export function apply(ctx) {
       }
 
       try {
-        // The executing agent IS the viewing scope: preset tools register into
-        // the agent-scope layer of the tools registry, and schemas() with no
-        // scope only sees the global layer — every preset-provided tool would
-        // be invisible to keyword search (issue #24). Same pattern as the
-        // harness's own code mode (`registry.schemas(exec.agent)`).
-        const schemas = ctx.tools.schemas(exec?.agent)
+        const schemas = ctx.tools.schemas()
         const wanted = query.toLowerCase().split(/[^a-z0-9_]+/).filter(Boolean)
-        const all = schemas.filter((schema) => {
-          const haystack = `${schema.name} ${schema.description ?? ''}`.toLowerCase()
-          return wanted.every((token) => haystack.includes(token))
-        })
-        const matches = all.slice(0, MAX_RESULTS)
-        if (all.length === 0) {
+        const matches = schemas
+          .filter((schema) => {
+            const haystack = `${schema.name} ${schema.description ?? ''}`.toLowerCase()
+            return wanted.every((token) => haystack.includes(token))
+          })
+          .slice(0, MAX_RESULTS)
+        if (matches.length === 0) {
           lines.push(`No tools match "${query}".`)
         } else {
-          lines.push(`Matching tools (${matches.length}${all.length > MAX_RESULTS ? ` of ${all.length}` : ''}):`)
+          lines.push(`Matching tools (${matches.length}):`)
           for (const schema of matches) {
             const desc = (schema.description || '').split('\n')[0].slice(0, 90)
             lines.push(`- ${schema.name}: ${desc}`)
-          }
-          if (all.length > MAX_RESULTS) {
-            lines.push(`(truncated at ${MAX_RESULTS} — add tokens to narrow the query, e.g. "mcp browser" or "mcp tavily")`)
           }
           lines.push('Unlock with dev_tool_search({"toolNames": ["<exact name>"]}).')
         }

@@ -1,12 +1,12 @@
 /**
  * Epoch-aware promotion tracker shared by the bootstrap and baseline-gate
- * plugins of the anchored presets.
+ * plugins of the boost-mode presets.
  *
  * A compaction rewrites the model-visible surface: the pre-compaction
  * conversation collapses into one synthetic summary message, and the
  * workspace-instruction baseline is re-injected from scratch. The first
  * post-compaction request is therefore a "second first request" — the same
- * first-token conditions the anchored presets exist to control. Promotion is
+ * first-token conditions the boost-mode presets exist to control. Promotion is
  * epoch-aware: only a durable promotion signal (`tool/call` and/or
  * `assistant/message`, per the caller's `promoteEvents`) recorded AFTER the
  * last `compaction/end` boundary counts as promoted. Before any compaction
@@ -15,16 +15,10 @@
  * State is memoized per session id and maintained incrementally through
  * `observe()`; a cold session scans its durable log once (so resume and
  * reload reconstruct the same phase), then O(1).
- *
- * By default subagents (`delegationDepth > 0`) are treated as already
- * promoted so their first request can use tools. Set `includeSubagents: true`
- * to make subagents follow the same bootstrap/anchor phase as top-level
- * sessions.
  */
 
 /** Build one epoch-aware promotion tracker. */
-export function createEpochPromotion(promoteEvents, options = {}) {
-  const includeSubagents = options.includeSubagents === true
+export function createEpochPromotion(promoteEvents) {
   const promote = new Set(promoteEvents)
   /** sessionId -> { boundary, promoted } */
   const state = new Map()
@@ -59,9 +53,8 @@ export function createEpochPromotion(promoteEvents, options = {}) {
       if (agent === undefined) return { boundary: -1, promoted: true }
       const session = agent.session
       if (session === undefined) return { boundary: -1, promoted: true }
-      // By default subagents keep the full catalog from their very first
-      // request; includeSubagents makes them follow the normal bootstrap phase.
-      if (!includeSubagents && (session.header?.delegationDepth ?? 0) > 0) return { boundary: -1, promoted: true }
+      // Subagents keep the full catalog from their very first request.
+      if ((session.header?.delegationDepth ?? 0) > 0) return { boundary: -1, promoted: true }
       return state.get(session.id) ?? scan(session)
     },
     /** Incremental feed: call on every `session/event`. */

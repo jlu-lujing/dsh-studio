@@ -5,7 +5,7 @@
  * WHY: the available-skills reminder (`<available_skills>`, ~9KB with many
  * skills) is injected into the first step by dsh-tool-skill and again after
  * every promotion/compaction. That large injected block perturbs the
- * trajectory (issue #6: 0/9 anchored with the catalog present vs ~81%
+ * trajectory (issue #6: 0/9 boost-mode with the catalog present vs ~81%
  * without). We remove the catalog injection entirely and expose two small
  * tools instead — the Claude tool-search pattern:
  *
