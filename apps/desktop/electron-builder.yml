@@ -18,16 +18,32 @@ mac:
   # 优先用本地 iconutil 生成的 icns（避免 electron-builder 联网下转换工具）
   icon: build/icon.icns
   target:
-    - dir
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
 win:
-  # Windows 打包在对应 OS 上进行（本仓库目前不跑 win 产物）
   icon: build/icon.png
   target:
-    - dir
+    - target: nsis
+      arch:
+        - x64
+    - target: zip
+      arch:
+        - x64
 linux:
   icon: build/icon.png
   target:
-    - dir
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
 npmRebuild: false
 electronDownload:
   # 若需镜像（国内网络）取消注释：

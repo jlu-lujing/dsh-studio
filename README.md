@@ -119,19 +119,27 @@ dsh-studio/
 
 ## 🚀 快速开始
 
-### 方式一：发布版（全新系统装全家桶）
+### 方式一：安装桌面客户端（推荐）
 
-装一个包 = 用 DSH 的原生插件命令把 `dsh-studio` 加进某个 profile：
+DSH Studio 是一个**完整的桌面应用**，用户无需安装 dsh / Node 任何东西。从 GitHub Releases 下载对应平台的安装包即可：
+
+- **macOS**：`DSH Studio-<ver>-arm64.dmg` 或 `DSH Studio-<ver>-x64.dmg`
+- **Windows**：`DSH Studio Setup <ver>.exe`
+- **Linux**：`DSH Studio-<ver>.AppImage` 或 `.deb`
+
+> 下载：https://github.com/jlu-lujing/dsh-studio/releases
+
+启动 App 后，它会自带 dsh 运行时、自动装配全家桶，并支持内置自动更新（拉取 feed.json + sha512 校验 + 原子切换）。
+
+### 方式二：作为 DSH 插件安装（兼容/高级用法）
+
+如果你已经有一个 dsh 环境，也可以把全家桶作为 npm 插件装进某个 profile：
 
 ```sh
-dsh plugin --profile web add -w dsh-studio
+dsh plugin --profile web add -w @dsh-studio/dsh-studio
 ```
 
-`dsh-studio` 内部按功能分子目录，满血模式（Boost Mode）preset 内置——真正「装一个包，全家桶开箱即用」。
-
-> 💡 **关键**：`dsh-studio install` 命令**并不是**全新系统的入口。它内部只是执行上面这条 `dsh plugin ... add -w dsh-studio`；要运行 `dsh-studio` 命令，你得先装上 `dsh-studio` 这个 npm 包（其 `bin` 进入 PATH）。全新系统直接用上面的 `dsh plugin` 命令。
-
-### 方式二：本地源码调试（推荐隔离环境）
+### 方式三：本地源码调试
 
 ```sh
 # 1. 安装依赖并构建
@@ -146,6 +154,8 @@ dsh plugin --profile dev add -w /path/to/dsh-studio/packages/dsh-studio
 dsh web
 ```
 
+> ⒈：桌面端开发用 `pnpm desktop:dev`（electron-vite 热重载），输出安装包用 `pnpm desktop:dist`。
+
 ---
 
 ## 🛠️ 插件管理
@@ -157,7 +167,7 @@ dsh-studio list                                     # 列出所有功能及状�
 dsh-studio enable dsh-studio-notifier              # 启用桌面通知
 dsh-studio disable dsh-studio-scheduler            # 停用定时任务
 dsh-studio install [--profile <p>]                  # 把全家桶装进指定 profile（默认 web）
-# 注：需要系统里已有 dsh-studio 命令；全新系统请用: dsh plugin --profile web add -w dsh-studio
+# 注：需要系统里已有 dsh-studio 命令；全新系统请用: dsh plugin --profile web add -w @dsh-studio/dsh-studio
 ```
 
 - 状态保存在 `~/.dsh/dsh-studio/state.json`，**重启后保留**。
