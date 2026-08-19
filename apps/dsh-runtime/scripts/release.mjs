@@ -16,7 +16,7 @@
  */
 import { createHash } from 'node:crypto'
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, statSync, writeFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 
@@ -44,7 +44,7 @@ if (r.status !== 0) process.exit(r.status ?? 1)
 // 2) 解析版本与平台：从 build.mjs 产出的 zip 文件名（dsh-runtime-<v>-<platform>-<arch>.zip）推断
 const pkgJson = JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8'))
 const gzFiles = existsSync(outDir)
-  ? readdir(outDir).filter((f) => f.endsWith('.tar.gz'))
+  ? readdirSync(outDir).filter((f) => f.endsWith('.tar.gz'))
   : []
 const gz = gzFiles[0]
 const nameParts = gz ? gz.replace(/^dsh-runtime-/, '').replace(/\.tar\.gz$/, '').split('-') : []

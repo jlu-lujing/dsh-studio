@@ -19,9 +19,11 @@
  */
 import { execFileSync, spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { copyFileSync, cpSync, createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, rmSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { createGzip } from 'node:zlib'
+import { pipeline } from 'node:stream/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const require = createRequire(import.meta.url)
@@ -36,15 +38,36 @@ const tarGz = process.argv.includes('--tar-gz')
 /* helpers                                                              */
 /* ------------------------------------------------------------------ */
 
+/** npm 可执行名：Windows 上需 npm.cmd（Node spawn 不认无扩展名 shim）。 */
+function npmCmd() {
+  return process.platform === 'win32' ? 'npm.cmd' : 'npm'
+}
+
+/**
+ * 解析全局 @deepseek-ai/dsh。
+ *
+ * 优先用 process.execPath 相邻的全局 node_modules（Windows 下 Git Bash /
+ * spawn 批处理不稳，直接探测文件最可靠）；探测不到再退到 `npm root -g`。
+ */
 function findGlobalDsh() {
-  const root = execFileSync('npm', ['root', '-g'], { encoding: 'utf8' }).trim()
-  const pkgDir = join(root, '@deepseek-ai', 'dsh')
-  const pkgJson = join(pkgDir, 'package.json')
-  if (!existsSync(pkgJson)) {
-    throw new Error(`no @deepseek-ai/dsh at ${pkgDir} (npm root -g = ${root})`)
+  const candidates = []
+  // 1) 当前 node 同级的全局 node_modules（npm 默认全局根当前就在这）
+  candidates.push(join(dirname(process.execPath), 'node_modules'))
+  // 2) `npm root -g`（若 spawn 可用；失败静默忽略）
+  try {
+    candidates.push(execFileSync(npmCmd(), ['root', '-g'], { encoding: 'utf8' }).trim())
+  } catch {
+    /* spawn npm 不可用（如 Windows 无 shell）时跳过 */
   }
-  const version = JSON.parse(readFileSync(pkgJson, 'utf8')).version
-  return { root, pkgDir, version }
+  for (const root of candidates) {
+    const pkgDir = join(root, '@deepseek-ai', 'dsh')
+    const pkgJson = join(pkgDir, 'package.json')
+    if (!existsSync(pkgJson)) continue
+    const version = JSON.parse(readFileSync(pkgJson, 'utf8')).version
+    console.log(`[build] global dsh : ${pkgDir} (${version})`)
+    return { root, pkgDir, version }
+  }
+  throw new Error(`no @deepseek-ai/dsh found (checked: ${candidates.join(' | ')})`)
 }
 
 function hasZstd() {
@@ -180,37 +203,27 @@ writeFileSync(join(staging, 'VERSION'), `${dsh.version}\n`)
 
 mkdirSync(outDir, { recursive: true })
 const base = `dsh-runtime-${dsh.version}-${platform}-${arch}`
-const tmpTar = join(outDir, `.${base}.tmp-${process.pid}`)
-rmIfExists(tmpTar)
 
-const zstd = hasZstd()
-if (zstd) console.log('[build] using zstd compression')
-const tar = spawnSync('tar', [
-  ...(zstd ? ['--use-compress-program=zstd -3 -T0'] : ['-z']),
-  '--exclude=**/*.map',
-  '--exclude=**/*.tsbuildinfo',
-  '-cf', tmpTar, '-C', staging, '.',
-], { stdio: 'inherit' })
-if (tar.status !== 0) throw new Error(`tar failed: ${tar.status}`)
+// 纯 JS tar+gzip 打包（零外部二进制、跨平台）：Node 直产标准 ustar 格式，
+// 桌面端 updater 的 tar-stream 可直接解压。不再依赖系统 tar（Windows 上
+// GNU tar 会误把 `C:` 当远端主机）。
+const tmpGz = join(outDir, `.${base}.tmp-${process.pid}.tar.gz`)
+await createTarGz(staging, tmpGz)
 
-// 产出标准发布物：dsh-runtime-<v>-<platform>-<arch>.zip（zstd 或 gzip）
+// 产出标准发布物：dsh-runtime-<v>-<platform>-<arch>.zip（gzip tar）
 const zipPath = join(outDir, `${base}.zip`)
 rmIfExists(zipPath)
-cpSync(tmpTar, zipPath)
+copyFileSync(tmpGz, zipPath)
 
-// --tar-gz：额外产出 gzip tar（M4 更新链路纯 JS 可解，Windows 无需 zstd）。
+// --tar-gz：额外产出改名一致的 gzip tar（M4 更新链路消费端用）。
 let gzPath = null
 if (tarGz) {
   gzPath = join(outDir, `${base}.tar.gz`)
-  const gz = spawnSync('tar', [
-    '--exclude=**/*.map',
-    '--exclude=**/*.tsbuildinfo',
-    '-czf', gzPath, '-C', staging, '.',
-  ], { stdio: 'inherit' })
-  if (gz.status !== 0) throw new Error(`tar.gz failed: ${gz.status}`)
+  rmIfExists(gzPath)
+  copyFileSync(tmpGz, gzPath)
 }
 
-rmIfExists(tmpTar)
+rmIfExists(tmpGz)
 rmIfExists(staging)
 
 console.log(`[build] done → ${zipPath} (${fmt(statSync(zipPath).size)})`)
@@ -218,6 +231,111 @@ if (gzPath) console.log(`[build] done → ${gzPath} (${fmt(statSync(gzPath).size
 console.log('[build] runtime.json:', JSON.stringify(runtime))
 
 /* ------------------------------------------------------------------ */
+/**
+ * 纯 JS 打包 srcDir 为 gzip tar（标准 ustar，桌面端 tar-stream 可直接解）。
+ * 逐文件流式写 512B 头 + 内容；目录/符号链接一并支持；尾部 1024B 零块后 gzip。
+ * 零外部二进制、跨平台——不依赖系统 tar（Windows 上 GNU tar 会误把盘符当远端主机）。
+ */
+/**
+ * 纯 JS 打包 srcDir 为 gzip tar（标准 ustar，桌面端 tar-stream 可直接解）。
+ * 两阶段：① 写临时未压缩 .tar（Node Writable 顺序写，天然无并发交错）；
+ *        ② pipeline(createReadStream, createGzip, createWriteStream) → destFile。
+ * 零外部二进制、跨平台——不依赖系统 tar（Windows 上 GNU tar 会误把盘符当远端主机）。
+ */
+async function createTarGz(srcDir, destFile) {
+  const { readdir, readlink, stat } = await import('node:fs/promises')
+  const { join: pjoin } = await import('node:path')
+  const tmpTar = destFile + '.raw'
+
+  const octal = (n, pad = 12) => n.toString(8).padStart(pad - 1, '0') + '\0'
+  const ustar = (name, size, mode, typeflag, linkname = '') => {
+    const b = Buffer.alloc(512)
+    b.fill(0)
+    b.write(name.toString(), 0, 100, 'utf8')
+    b.write(octal(mode, 8), 100, 8, 'utf8')
+    b.write(octal(1000, 8), 108, 8, 'utf8') // uid
+    b.write(octal(1000, 8), 116, 8, 'utf8') // gid
+    b.write(octal(size, 12), 124, 12, 'utf8')
+    b.write(octal(Math.floor(Date.now() / 1000), 12), 136, 12, 'utf8')
+    b[156] = typeflag.charCodeAt(0)
+    b.write('ustar\0', 257, 6, 'utf8')
+    b.write('00', 263, 2, 'utf8')
+    if (linkname) b.write(linkname.toString(), 157, 100, 'utf8')
+    // tar checksum：checksum 字段位（148-155）按空格参与求和
+    b.fill(0x20, 148, 156)
+    const sum = b.reduce((a, v) => a + v, 0)
+    b.write(octal(sum, 8), 148, 8, 'utf8')
+    return b
+  }
+  const toBuf = (str, padTo512 = false) => {
+    const raw = Buffer.from(str, 'utf8')
+    return padTo512 ? Buffer.concat([raw, Buffer.alloc((512 - (raw.length % 512)) % 512)]) : raw
+  }
+  const pad512 = (n) => Buffer.alloc((512 - (n % 512)) % 512)
+
+  // GNU longname 扩展：路径 >100 时先写一个 @LongLink 记录（内容=完整路径名），
+  // 随后紧跟该条目自身的真实 header（由调用方负责写）。
+  const longEntry = (name) => [
+    ustar('././@LongLink', Buffer.byteLength(name), 0o644, 'L'),
+    toBuf(name, true),
+  ]
+
+  const entries = []
+  const walk = async (dir, prefix) => {
+    const items = await readdir(dir, { withFileTypes: true })
+    for (const it of items) {
+      if (it.name === '.DS_Store') continue
+      if (it.name.endsWith('.map') || it.name.endsWith('.tsbuildinfo')) continue
+      const full = pjoin(dir, it.name)
+      const rel = prefix ? `${prefix}/${it.name}` : it.name
+      if (it.isDirectory()) {
+        entries.push({ rel, full, dir: true })
+        await walk(full, rel)
+      } else if (it.isSymbolicLink()) {
+        entries.push({ rel, full, link: await readlink(full) })
+      } else {
+        entries.push({ rel, full, dir: false })
+      }
+    }
+  }
+  await walk(srcDir, '')
+
+  const out = createWriteStream(tmpTar)
+  const write = (b) => new Promise((res, rej) => {
+    if (out.write(b)) res()
+    else out.once('drain', res).once('error', rej)
+  })
+
+  for (const e of entries) {
+    const name = e.rel
+    if (Buffer.byteLength(name) > 255) throw new Error(`tar path too long: ${name}`)
+    const needLong = Buffer.byteLength(name) > 100
+    if (e.dir) {
+      if (needLong) for (const b of longEntry(name)) await write(b)
+      await write(ustar(name, 0, 0o755, '5'))
+    } else if (e.link !== undefined) {
+      if (needLong) for (const b of longEntry(name)) await write(b)
+      await write(ustar(name, 0, 0o644, '2', e.link))
+    } else {
+      const st = await stat(e.full)
+      if (needLong) for (const b of longEntry(name)) await write(b)
+      await write(ustar(name, st.size, 0o644, '0'))
+      if (st.size > 0) {
+        await pipeline(createReadStream(e.full), out, { end: false })
+        await write(pad512(st.size))
+      }
+    }
+  }
+  // 尾部：1024B 零块
+  await write(Buffer.alloc(1024))
+  out.end()
+  await new Promise((res, rej) => out.on('finish', res).on('error', rej))
+
+  // ② gzip 压缩为最终产物
+  await pipeline(createReadStream(tmpTar), createGzip(), createWriteStream(destFile))
+  rmIfExists(tmpTar)
+}
+
 /* implementations below                                                */
 /* ------------------------------------------------------------------ */
 
