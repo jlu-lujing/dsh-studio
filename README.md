@@ -87,10 +87,9 @@ DSH Studio 桌面端是一个 Electron 应用（方案与演进见 [`docs/DESKTO
 - 功能商店底部只读展示 `topic:dsh-plugin` 生态仓库，按 Star 降序；
 - 首次秒出 Top 100，后台补全并 30 分钟缓存；网络受限回退内置快照。
 
-### 🚀 TurboBoost Mode（满血模式）· 内置 preset
-- 二阶段 agent preset：**Minimal 引导 → 首次持久晋升信号后开放完整工具目录**；
-- 附 **J-Space 认知协议 skill**，长任务/工具重任务按需加载；
-- 内置 `packages/dsh-studio/preset/`，默认开启，自动导入 `~/.dsh/.agent-presets/boost-mode`。
+### 🚀 Boost Mode（满血模式）· 内置 preset
+- 基于 [dsh-anchored-standard](https://github.com/xiaobright/dsh-anchored-standard) 二阶段 agent preset：**Minimal 引导 → 首次持久晋升信号后开放完整工具目录**；
+- 内置 `packages/dsh-studio/preset/`，默认开启，自动导入 `~/.dsh/.agent-presets/boost-mode`；更重的工具按需 “discovery” 解锁（`dev_tool_search` / `skill_search` / `skill_load`）。
 
 ---
 
@@ -122,7 +121,7 @@ dsh-studio/
 dsh plugin --profile web add -w dsh-studio
 ```
 
-`dsh-studio` 内部按功能分子目录，满血模式（TurboBoost Mode）preset 内置——真正「装一个包，全家桶开箱即用」。
+`dsh-studio` 内部按功能分子目录，满血模式（Boost Mode）preset 内置——真正「装一个包，全家桶开箱即用」。
 
 > 💡 **关键**：`dsh-studio install` 命令**并不是**全新系统的入口。它内部只是执行上面这条 `dsh plugin ... add -w dsh-studio`；要运行 `dsh-studio` 命令，你得先装上 `dsh-studio` 这个 npm 包（其 `bin` 进入 PATH）。全新系统直接用上面的 `dsh plugin` 命令。
 
@@ -218,8 +217,7 @@ pnpm -r publish --access public --no-git-checks
 
 ## 📚 许可
 
-- **满血模式（TurboBoost Mode）preset**：内置二阶段 agent preset，由 dsh-studio 的导入/删除管理器（`src/preset.ts`）打包分发。
-- **J-Space 认知协议 skill**：随满血模式一起内置分发（`packages/dsh-studio/preset/j-space/`），安装 preset 时自动装入 `~/.dsh/skills/j-space/`；满血 persona 轻量引导模型在深度推理/长任务/工具重任务时用 `skill_load j-space` 按需加载。
+- **满血模式（Boost Mode）preset**：基于 [dsh-anchored-standard](https://github.com/xiaobright/dsh-anchored-standard) 的二阶段 agent preset，由 dsh-studio 的导入/删除管理器（`src/preset.ts`）打包分发。
 - **GitHub 生态目录**的分片抓取/缓存思路参考 [0xKcyzz/dsh-plugin-store](https://github.com/0xKcyzz/dsh-plugin-store)（MIT）；dsh-studio 只取展示能力，不做安装。
   - 简介：首次请求用 Minimal 工具对（`bash` / `str_replace_editor`），首次持久晋升信号后开放完整工具目录。
   - 全家桶接入：内置 `packages/dsh-studio/preset/`，默认开启，自动导入到 `~/.dsh/.agent-presets/boost-mode`；功能商店可手动导入/删除。

@@ -49,7 +49,7 @@ packages/dsh-studio/
 ├── tsdown.config.ts
 ├── bin/
 │   └── dsh-studio.mjs    # CLI
-├── preset/               # TurboBoost/满血 preset + j-space skill
+├── preset/               # Boost/满血 preset + j-space skill
 ├── cordis.patch.yml      # 聚�� patch（含全部功能行）
 ├── src/
 │   ├── index.ts          # 聚合入口

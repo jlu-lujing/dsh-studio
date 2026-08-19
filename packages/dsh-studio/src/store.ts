@@ -56,8 +56,8 @@ export const FEATURES: readonly Feature[] = [
   },
   {
     id: 'dsh-boost-mode',
-    name: 'TurboBoost Mode',
-    description: 'TurboBoost Mode（满血模式）：Minimal 工具引导（bash/str_replace_editor）→ 首次晋升后开放完整工具；导入 preset 到 ~/.dsh/.agent-presets/boost-mode，并安装 J-Space 认知协议 skill（~/.dsh/skills/j-space，长任务/深度推理可 skill_load j-space）',
+    name: 'Boost Mode',
+    description: 'Boost Mode（满血模式）：Minimal 工具引导（bash/str_replace_editor）→ 首次晋升后开放完整工具；导入 preset 到 ~/.dsh/.agent-presets/boost-mode（基于 dsh-anchored-standard），按需 discovery 解锁更重工具',
     defaultEnabled: true,
     installable: true,
     togglable: false,

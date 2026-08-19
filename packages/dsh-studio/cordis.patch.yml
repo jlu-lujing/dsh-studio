@@ -6,7 +6,7 @@
 # `~/.dsh/dsh-studio/state.json`（store 服务），启/停后重启 dsh 生效，与既有
 # `dsh-studio enable/disable` CLI、功能商店面板保持一致。
 #
-# 满血模式 preset（TurboBoost）不是 loader 行：由聚合包内联管理（启用自动装
+# 满血模式 preset（Boost）不是 loader 行：由聚合包内联管理（启用自动装
 # + store 导入/删除路由），无需单独行。
 #
 # 内置浏览目录选择器：原生 picker 在部分平台不可靠且局域网浏览器不可见，
