@@ -1,24 +1,34 @@
+<p align="center">
+  <img src="apps/desktop/build/dsh-logo.svg" alt="DSH Studio" width="120" />
+</p>
+
 <div align="center">
 
 # DSH Studio
 
 **一个完整的桌面客户端 · 一路护航 DSH**
 
-开箱即用的桌面软件：Electron 客户端壳 + 内置 dsh 运行时 + 全家桶插件，装一个 App，全部能力即开。
+开箱即用的桌面软件：Electron 客户端壳 + 内置 dsh 运行时 + 全家桶插件，
+装一个 App，全部能力即开。
 
-`MIT License` · Language: [中文](#) · 基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
+`MIT License` · 基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
 
 </div>
 
 ---
 
-## ✨ 项目定位
+## ✨ 这是什么
 
-`DSH Studio` 是一个**以客户端为主**的 DSH 桌面套件，包含三层：
+`DSH Studio` 是一个**以桌面客户端为主的 DSH 套件**——不是散装的插件集合，而是一个
+开箱即用的完整产品：
 
-1. **桌面客户端**（`apps/desktop`）—— Electron 壳：启动内置 dsh、加载本地 Web UI、托盘/自启/多窗口/自动更新，开箱即用，用户无需单独安装 dsh。
-2. **内置运行时**（`apps/dsh-runtime`）—— 自带的 dsh 独立运行包子模块（自带 Node + `@deepseek-ai/dsh` 全依赖树），产出发行物并随客户端分发，离线可用。
-3. **全家桶插件**（`packages/dsh-studio`）—— 单一 npm 包聚合全部功能：UI 增强、自动化、局域网网关、主题商店、worktree 会话归属、满血模式 preset 等，可单独启停。
+| 层 | 目录 | 作用 |
+| --- | --- | --- |
+| 🖥️ **桌面客户端** | `apps/desktop` | Electron 壳：启动内置 dsh、加载本地 Web UI、托盘、自启、多窗口、自动更新 |
+| ⚙️ **内置运行时** | `apps/dsh-runtime` | 自带 Node + `@deepseek-ai/dsh` 全依赖树的独立运行包子模块，离线可用 |
+| 🧩 **全家桶插件** | `packages/dsh-studio` | 单一 npm 包聚合全部功能（UI 增强、自动化、局域网网关、主题商店、worktree、满血模式…） |
+
+用户**无需单独安装 dsh**——装一个 App，启动即自动装配全家桶，全部功能开箱即用。
 
 - **开箱即用**：桌面端首启自动装配全家桶，装一个 App 即可
 - **全家桶**：工具、UI 增强、自动化等能力全部内置
@@ -26,6 +36,65 @@
 - **可扩展**：功能商店面板一键管理启停
 
 ---
+
+## 🖥️ 桌面客户端
+
+DSH Studio 桌面端是一个 Electron 应用（方案与演进见 [`docs/DESKTOP.md`](docs/DESKTOP.md)）：
+
+- **自带运行时，免安装 dsh**——内置 `apps/dsh-runtime`，启动便拉起 `dsh web`；
+- **智能复用**——先探测 `127.0.0.1:3080` 是否已有健康 dsh 实例，有则直接复用（不干预你已有的实例），无则自管拉起 `dsh web --port 0`；
+- **无边框透明窗口** + 本地渲染的 DSH Studio 品牌界面，多窗口共享同一 dsh 后台；
+- **托盘 / 开机自启** / 单实例锁；
+- **自动更新链路**（M4/M5）：拉取 `feed.json` → 下载 runtime 升级包 → sha512 校验 → 纯 JS 解压到 `next/` → 冒烟 → 原子切换 `current ↔ previous`，失败自动回滚；**不碰已签名 App 包**；
+- **安全边界**：运行期仅放行同 origin，外部导航交给系统浏览器；
+- 只对**自管**实例自动装配全家桶 / 自动更新；复用外部实例时完全不干预你的配置。
+
+---
+
+## 📦 全家桶特性
+
+> 六个功能都是 `dsh-studio` 包内的内置子模块（见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)），
+> 不再是独立的 npm 包——装一个包全部开箱即用。
+
+### 🎨 WebUI 主题商店
+- **全局界面调整**：叠加层改任意 token（浅/深双套值），切主题也生效；
+- **每主题独立风格**：海洋 / 樱 / 森林三套预设（深/浅双版），可自定义主题新建/编辑/删除；
+- 持久化到 `~/.dsh/dsh-studio-webui/themes.json`，重启自动恢复。
+> 验收记录见 [`docs/THEME_STORE_VERIFICATION.md`](docs/THEME_STORE_VERIFICATION.md)。
+
+### 🔔 桌面通知
+- 监听回合结束，跨平台通知（macOS / Linux / Windows），零 npm 依赖。
+
+### ⏰ 定时任务（scheduler）
+- cron 定时任务 + 持久化 + 管理路由，支持 shell 命令。
+
+### 🌐 局域网鉴权网关（lan-auth）
+- HTTPS 反向代理 + token/账号密码登录，默认关闭；
+- 私有 CA 零配置自动生成（SAN 覆盖本机全部局域网 IP），登录页引导下载 `.crt` 免警告；
+- 本机 loopback 免登录直通，管理路由仅本机可达；登出即刊销 token 并清 cookie。
+
+### ⌨️ 输入历史（input-history）
+- 记录**当前会话**发送的消息，输入框无命令菜单时按 ↑/↓ 回填（每个会话单独记忆）。
+
+### 🌿 git Worktree 会话归属
+- 会话按 cwd 判定 `main` 或 `.dsh/worktree/<branch>`；
+- 新建会话可选已有 / 新建 worktree；对话顶部显示归属徽标。
+
+### 📋 归档会话管理
+- DSH 只隐藏归档会话，dsh-studio 补齐**恢复**与**彻底删除**（含二次确认，落盘 `workspace.json`）。
+
+### 🔍 GitHub 生态目录
+- 功能商店底部只读展示 `topic:dsh-plugin` 生态仓库，按 Star 降序；
+- 首次秒出 Top 100，后台补全并 30 分钟缓存；网络受限回退内置快照。
+
+### 🚀 TurboBoost Mode（满血模式）· 内置 preset
+- 二阶段 agent preset：**Minimal 引导 → 首次持久晋升信号后开放完整工具目录**；
+- 附 **J-Space 认知协议 skill**，长任务/工具重任务按需加载；
+- 内置 `packages/dsh-studio/preset/`，默认开启，自动导入 `~/.dsh/.agent-presets/boost-mode`。
+
+---
+
+## 🗂️ 仓库结构
 
 ```
 dsh-studio/
@@ -35,28 +104,11 @@ dsh-studio/
 ├── packages/
 │   └── dsh-studio/       # 全家桶插件单包（聚合 + 六个功能子目录，发布 npm）
 ├── scripts/              # 客户端/插件开发与构建脚本
+├── docs/                 # 架构 / 桌面端 / 迁移 / 验证 文档
 ├── .github/workflows/    # CI（build/typecheck/test）+ 发布 workflow
-├── docs/                 # 架构 / 桌面端 / 迁移 文档
 ├── package.json          # workspace 根
 └── pnpm-workspace.yaml   # pnpm workspace
 ```
-
-## 📦 功能清单
-
-| 组件 | 功能 | 说明 |
-| --- | --- | --- |
-| `dsh-studio` | 单包聚合 | host 管理 CLI + 设置页「功能商店」+「归档会话」管理 + 内置 preset 管理器；六功能子模块 |
-| 桌面通知 | 内置子模块 | 监听回合结束，跨平台通知（macOS/Linux/Windows），零 npm 依赖 |
-| 定时任务 | 内置子模块 | cron 定时任务 + 持久化 + 管理路由（支持 shell 命令） |
-| 局域网鉴权网关 | 内置子模块 | HTTPS 反向代理 + token/登录，默认关闭；私有 CA 零配置自动生成 |
-| 输入历史 | 内置子模块 | 记录**当前会话**发送的消息，输入框无命令菜单时按 ↑/↓ 切换回填（每个会话单独记忆） |
-| WebUI 主题商店 | 内置子模块 | **全局界面调整** + **每主题独立风格**；内置海洋/樱/森林三套预设（深/浅双版），支持自定义主题 |
-| git Worktree 会话归属 | 内置子模块 | 会话按 cwd 判定 `main` 或 `.dsh/worktree/<branch>`；新建会话可选已有/新建 worktree，对话顶部显示归属徽标 |
-| TurboBoost Mode（满血模式） | 内置 preset | 二阶段 agent preset（Minimal 引导 → 首次晋升开放完整工具）；附 J-Space 认知协议 skill |
-| GitHub 生态目录 | 内置 | `topic:dsh-plugin` 仓库只读展示 |
-| 归档会话管理 | 内置 | 归档会话恢复 / 删除 |
-
-> 💡 六个功能都是 `dsh-studio` 包内的子模块（见 `docs/ARCHITECTURE.md`），不再是独立 npm 包。
 
 ---
 
@@ -105,50 +157,31 @@ dsh-studio install [--profile <p>]                  # 把全家桶装进指定 p
 
 - 状态保存在 `~/.dsh/dsh-studio/state.json`，**重启后保留**。
 - 每个功能的启停由 host 单入口按 state 决定，**无需编辑任何 patch 文件**。
-- 停用的功能 host 侧不挂载（路由/定时器/网关不运行），client 侧界面也不注册（见 `docs/ARCHITECTURE.md`）。
-- 也可以通过设置页「功能商店」面板一键点按开关。
+- 停用的功能 host 侧不挂载（路由/定时器/网关不运行），client 侧界面也不注册。
+- 也可在设置页「功能商店」面板一键启停。
 
-### GitHub 生态目录（只读展示）
-
-功能商店底部会展示 GitHub `topic:dsh-plugin` 生态仓库，按 **Star 数降序**排列，点击卡片打开仓库主页（安装方式各不相同，请以各仓库 README 为准，暂不提供一键安装）。
-
-- 首次打开先秒出 Top 100，随后后台补全完整目录并写入 30 分钟磁盘缓存。
-- 网络受限时自动回退到包内置快照；可配置 `GITHUB_TOKEN` 提升 GitHub API 限流。
-- 目录抓取策略参考 [0xKcyzz/dsh-plugin-store](https://github.com/0xKcyzz/dsh-plugin-store)（MIT）。
-
-### 归档会话管理
-
-DSH 官方的「归档」只会把会话从列表隐藏、保留日志；dsh-studio 在设置页新增「归档会话」面板，补齐恢复与彻底删除：
-
-- **恢复**：把会话从 `archivedSessionIds` 移除，回到原工作区分组。
-- **删除**：从归档集和所有 workspace 的 `sessionIds` 摘除，并删除 `~/.dsh/sessions` 下对应日志目录；**不可恢复，UI 有二次确认**。
-- 操作直接落盘到 `~/.dsh/storages/workspace.json`；dsh 运行期以内存态为准，**操作后需重启 dsh 生效**。
-
-### WebUI 主题商店
-
-> 完整验收记录见 [`docs/THEME_STORE_VERIFICATION.md`](docs/THEME_STORE_VERIFICATION.md)。
-
-设置页新增「主题商店」面板。它**不替换官方主题**，而是跑在官方 `ui-theme` 的两个公开扩展点上：
-
-- **全局界面调整**：走官方 `ctx.theme.overrideTokens()` 叠加层——与主题无关，切到任何主题都生效；每个 token 分别保存浅色/深色两套值，随当前模式自动取值。
-- **主题风格**：走官方 `ctx.theme.register()` + `setTheme()`——每个主题有自己独立的 `--dsw-alias-*` token 集合；预设按「家族」提供深色版 + 浅色版，自定义主题可新建/编辑/删除。
-- **持久化**：自定义主题与全局调整写入 `~/.dsh/dsh-studio-webui/themes.json`（host 路由 `/dsh-studio-webui/themes` 管理），当前所选主题另存 localStorage；重启 dsh 后自动恢复。
-- **开关**：功能商店面板 / `dsh-studio disable dsh-studio-webui` 可整体停用；停用后设置页不出现该面板，host 路由与 client 一并下线。
+> 详情见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)。
 
 ---
 
 ## 💻 开发
 
 ```sh
-pnpm dev              # 双 watch：client 热构建 + host tsc watch（自动重编译，重启 dsh 生效）
+pnpm dev              # 双 watch：client 热构建 + host tsc watch（重启 dsh 生效）
 pnpm build            # 全量构建（host tsc + client tsdown）
 pnpm build:client     # 补齐 dsh.client 的 lib/client.js
 pnpm typecheck        # 类型检查
 pnpm test             # 测试
+
+# 桌面端开发
+pnpm desktop:dev      # electron-vite 热重载
+pnpm desktop:pack     # 打包（electron-builder --dir）
+pnpm runtime:build    # 构建内置 dsh 运行时发行物
+pnpm runtime:smoke    # 运行时冒烟
 ```
 
-> 注意：`pnpm build` 已包含 host 编译；client bundle 仍需 `pnpm build:client`（或 `pnpm dev`）产出。换机器/重新 clone 后建议两者都跑一遍。
-> `dsh-studio` 的 host tsc 会排除 `src/**/client/`，client 由 tsdown 单独产出 `lib/client.js`。
+> 注意：`pnpm build` 已包含 host 编译；client bundle 仍需 `pnpm build:client`（或 `pnpm dev`）产出。
+> `dsh-studio` 的 host tsc 会排除 `src/**/client/`，cient 由 tsdown 单独产出 `lib/client.js`。
 
 新插件可用官方脚手架生成，再移入 `packages/`：
 
@@ -157,42 +190,6 @@ npx create-dsh-plugin my-plugin -t tool
 ```
 
 ---
-
-## 🔒 局域网远程访问（局域网鉴权网关）
-
-启用后，局域网设备经 `https://<主机IP>:3443` + token 访问。
-
-- **证书（零配置）**：首启自动生成私有 CA（根 `ca.pem` + 叶子，SAN 覆盖本机全部局域网 IP）。登录页引导下载 `.crt` 永久免警告。
-- **安全模型**：本机 loopback 免登录直通；局域网需有效 token 或账号密码登录；管理路由仅本机可达。
-- **登出**：远程会话登出按钮带二次确认；登出即吊销会话 token 并清 cookie。
-- **管理**：`dsh-studio-lan-auth init-ca [--ip ...]` / `dsh-studio-lan-auth status`
-
-## 🖥️ 桌面客户端（Electron + 内置 dsh-runtime）
-
-独立桌面软件（Electron 壳 + 内置 dsh-runtime 子模块，**用户无需单独装 dsh**，已在 main 合入）。方案与演进见 `docs/DESKTOP.md`。
-
-- **M1–M5 已落地并真机验证**（2026-08-16）：
-  - `apps/dsh-runtime`：从本机已验证 dsh 构建独立运行时。自带官方 Node 二进制（方案 B）为目标态；当前 MVP 走 **Electron 内置 Node（方案 A）**，本地构建用 `build.mjs --skip-node-download` + `scripts/smoke.mjs` 冒烟
-  - `apps/desktop`：Electron 壳（electron-vite + electron-builder）——spawn/就绪 URL/BrowserWindow/退出清理、托盘、开机自启、错误页、更新链路（feed + sha512 + 原子切换 + 回滚）
-  - **开箱即用**：自管 dsh 实例就绪后，后台检测 web profile 并自动装 dsh-studio（`dsh plugin --profile web add -w dsh-studio`）；仅对自管实例执行，复用外部 `3080` 实例时不干预用户已有配置
-
-**启动方式**（任选其一）：
-
-```sh
-# 方式一：打包好的 App（本机构建）
-open "apps/desktop/dist/mac-arm64/DSH Studio.app"
-
-# 方式二：开发模式（electron-vite，热重载）
-cd apps/desktop
-npm install && npm run dev
-```
-
-> 💡 **常见坑**：`npm install` 装了 electron 包但二进制没下载时，`npm run dev` 会报
-> `Error: Electron uninstall`（缺 `node_modules/electron/dist` 与 `path.txt`）。手动跑一次
-> `node node_modules/electron/install.js` 即可补下二进制。
->
-> 客户端启动时会先探测 `127.0.0.1:3080` 是否已有健康 dsh 实例，有则**直接复用**；无则自己
-> 拉起 `dsh web --port 0` 并等待就绪 URL。日志在 `~/Library/Application Support/@dsh-studio/desktop/desktop.log`。
 
 ## 📤 发布
 
