@@ -1,0 +1,54 @@
+{
+  "name": "dsh-kit-lan-auth",
+  "version": "0.2.1",
+  "description": "DSH 局域网鉴权网关（dsh-kit 全家桶功能包，由 dsh-kit 聚合包挂载）——自签名 TLS 反向代理，本机免登录，局域网需 token/登录，鉴权全放行",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/*.js",
+    "lib/*.js.map",
+    "lib/types/**/*.d.ts",
+    "bin/dsh-kit-lan-auth.mjs"
+  ],
+  "scripts": {
+    "build": "tsc -b && tsdown",
+    "build:host": "tsc -b",
+    "build:client": "tsdown",
+    "typecheck": "tsc -b --noEmit",
+    "test": "tsx --test test/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-host-webserver": "^0.1.0-rc.6"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/cordis-plugin-loader": "1.0.2",
+    "@deepseek-ai/dsh-host-webserver": "^0.1.0-rc.6",
+    "@types/node": "^26.2.0",
+    "typescript": "^5.6.0"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-connection"
+      ]
+    }
+  },
+  "bin": {
+    "dsh-kit-lan-auth": "bin/dsh-kit-lan-auth.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}

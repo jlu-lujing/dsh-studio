@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    name: Build · Typecheck · Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (host)
+        run: pnpm -r build
+
+      - name: Build client bundles
+        # dsh-studio 的 lib/client.js 由 tsdown 单独产出；host tsc 不包含它。
+        # 迁移后 CI 必须显式跑，否则发布的包里缺 client 半边。
+        run: pnpm build:client
+
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      - name: Test
+        run: pnpm -r test
+
+  # 客户端（桌面端壳 + 内置运行时）独立门禁：它们不在 pnpm workspace，
+  # 用 npm 各自构建/冒烟，保证"以客户端为主"的产物不被忽略。
+  desktop:
+    name: Desktop · Runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Typecheck desktop
+        run: |
+          cd apps/desktop
+          npm install --no-audit --no-fund
+          npm run typecheck
+
+      - name: Build runtime (modules only)
+        run: |
+          cd apps/dsh-runtime
+          node scripts/build.mjs --skip-node-download

@@ -1,0 +1,19 @@
+{
+  "name": "@dsh-studio/dsh-runtime",
+  "version": "0.1.0-rc.6",
+  "private": true,
+  "description": "DSH Studio Desktop 内置的 dsh 独立运行时子模块",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:only": "node scripts/build.mjs --skip-node-download",
+    "smoke": "node scripts/smoke.mjs",
+    "test": "node --test 'test/*.test.mjs'"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh": "0.1.0-rc.6"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

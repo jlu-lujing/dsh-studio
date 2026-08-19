@@ -1,0 +1,7 @@
+# 构建产物：运行时本体不进 git，产出的 zip 由发布流水线管理
+node/
+node_modules/
+runtime.json
+VERSION
+out/
+*.zip

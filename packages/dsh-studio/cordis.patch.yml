@@ -1,0 +1,23 @@
+# dsh-studio aggregate patch layer.
+#
+# 方案B（host 单入口）：所有功能（notifier / scheduler / lan-auth /
+# input-history / webui / worktree + 聚合底座）都在 dsh-studio 的 host apply
+# 里统一挂载，因此这里只有一条 dsh-studio 行。功能开关由 dsh-studio host 读
+# `~/.dsh/dsh-studio/state.json`（store 服务），启/停后重启 dsh 生效，与既有
+# `dsh-studio enable/disable` CLI、功能商店面板保持一致。
+#
+# 满血模式 preset（TurboBoost）不是 loader 行：由聚合包内联管理（启用自动装
+# + store 导入/删除路由），无需单独行。
+#
+# 内置浏览目录选择器：原生 picker 在部分平台不可靠且局域网浏览器不可见，
+# 故全局禁用官方 directory-picker 行，由 dsh-studio host apply 挂 browse 对。
+- id: directory-picker
+  disabled: true
+
+# 官方「下载会话日志」标题按钮是低频重复入口，全局禁用。
+- id: session-log-download
+  disabled: true
+
+- insert:
+    - id: dsh-studio
+      name: dsh-studio

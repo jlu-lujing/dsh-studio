@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DSH Studio</title>
+    <style>
+      :root {
+        --bg: #0f1420;
+        --fg: #e8ecf4;
+        --muted: #8b94a7;
+        --accent: #4f8cff;
+        --err: #ff6b6b;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { background: transparent; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: radial-gradient(1200px 600px at 50% -10%, #1a2236 0%, var(--bg) 60%);
+        color: var(--fg);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        -webkit-user-select: none;
+        user-select: none;
+        /* frameless 圆角：窗口透明，四角留透明间隙 */
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      body.dshkit-maximized { border-radius: 0; }
+      body.dshkit-maximized .dshkit-dragbar { top: 0; left: 0; right: 0; }
+      body.dshkit-maximized .dshkit-winctl { top: 0; right: 0; }
+      body.dshkit-maximized .dshkit-winctl button.dshkit-close { border-radius: 0; }
+      body.dshkit-maximized .dshkit-trafficlights { top: 12px; left: 14px; }
+      /* 顶部拖拽区 + 右上角窗口控制按钮（frameless） */
+      .dshkit-dragbar {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: 38px;
+        -webkit-app-region: no-drag;
+        z-index: 1000;
+      }
+      /* 非 mac：右侧让出右上角按钮，避免 drag/no-drag 重叠挡点击 */
+      body:not([data-dsh-platform="darwin"]) .dshkit-dragbar { right: 165px; }
+      /* mac：左侧让出信号灯 */
+      body[data-dsh-platform="darwin"] .dshkit-dragbar { left: 90px; }
+      .dshkit-winctl {
+        position: fixed;
+        top: 0; right: 0;
+        height: 30px;
+        display: flex;
+        align-items: stretch;
+        gap: 2px;
+        padding-right: 0;
+        -webkit-app-region: no-drag;
+        z-index: 1001;
+      }
+      .dshkit-winctl button {
+        width: 42px;
+        height: 30px;
+        margin: 0;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        border-radius: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: default;
+        transition: background-color .12s ease;
+      }
+      .dshkit-winctl button svg { display: block; }
+      .dshkit-winctl button:hover { background: rgba(255,255,255,.12); color: var(--fg); }
+      .dshkit-winctl button.dshkit-close { border-radius: 0 12px 0 0; }
+      .dshkit-winctl button.dshkit-close:hover { background: rgba(232,17,35,.85); color: #fff; }
+      /* macOS：左上角信号灯 */
+      .dshkit-trafficlights {
+        position: fixed;
+        top: 12px; left: 14px;
+        height: 20px;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        -webkit-app-region: no-drag;
+        z-index: 1001;
+      }
+      .dshkit-trafficlights button {
+        width: 12px; height: 12px;
+        margin: 0; padding: 0;
+        border: none; border-radius: 50%;
+        cursor: default;
+        display: block;
+      }
+      .dshkit-trafficlights button.dshkit-tl-close { background: #ff5f57; }
+      .dshkit-trafficlights button.dshkit-tl-min { background: #febc2e; }
+      .dshkit-trafficlights button.dshkit-tl-max { background: #28c840; }
+      body[data-dsh-platform="darwin"] .dshkit-winctl { display: none; }
+      body[data-dsh-platform="darwin"] .dshkit-trafficlights { display: flex; }
+      body:not([data-dsh-platform="darwin"]) .dshkit-trafficlights { display: none !important; }
+      .logo {
+        width: 88px;
+        height: 88px;
+        margin: 0 auto 24px;
+        display: block;
+        /*
+          SVG 由 main 在启动前以 data-uri 注入（避免打包路径问题）；
+          默认隐藏，注入后显示。
+        */
+        opacity: 0;
+        transition: opacity .3s ease;
+      }
+      .logo.show { opacity: 1; }
+      h1 {
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: .5px;
+      }
+      .sub {
+        color: var(--muted);
+        margin-top: 6px;
+        font-size: 13px;
+      }
+      .status {
+        margin-top: 28px;
+        color: var(--accent);
+        font-size: 15px;
+        min-height: 22px;
+      }
+      .detail {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 13px;
+        max-width: 560px;
+        line-height: 1.7;
+        word-break: break-all;
+      }
+      .detail.error {
+        color: var(--err);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        background: rgba(255, 107, 107, .08);
+        border: 1px solid rgba(255, 107, 107, .25);
+        border-radius: 8px;
+        padding: 12px 16px;
+        margin-top: 16px;
+        text-align: left;
+      }
+      .spinner {
+        width: 22px;
+        height: 22px;
+        margin: 0 auto;
+        border: 2px solid rgba(79, 140, 255, .25);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin .9s linear infinite;
+        margin-top: 16px;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .hidden { display: none; }
+      button {
+        margin-top: 20px;
+        padding: 8px 22px;
+        border-radius: 999px;
+        border: 1px solid rgba(79, 140, 255, .5);
+        background: rgba(79, 140, 255, .12);
+        color: var(--accent);
+        font-size: 14px;
+        cursor: pointer;
+        transition: background .2s;
+      }
+      button:hover { background: rgba(79, 140, 255, .22); }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <img id="logo" class="logo" alt="DSH Studio" />
+      <h1>DSH Studio</h1>
+      <p class="sub" id="subtitle">DSH Studio 桌面客户端</p>
+      <div id="spinner" class="spinner"></div>
+      <p class="status" id="status">正在启动 dsh…</p>
+      <p class="detail" id="detail"></p>
+      <button id="retry" class="hidden" type="button">重新加载</button>
+    </div>
+    <!-- frameless 自绘标题栏 -->
+    <div class="dshkit-dragbar" id="dragbar"></div>
+    <div class="dshkit-winctl" id="winctl">
+      <button type="button" id="btn-min" title="最小化" aria-label="最小化">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </button>
+      <button type="button" id="btn-max" title="最大化" aria-label="最大化">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="2.2" y="2.2" width="7.6" height="7.6" rx="1" stroke="currentColor" stroke-width="1.2"/></svg>
+      </button>
+      <button type="button" id="btn-close" class="dshkit-close" title="关闭" aria-label="关闭">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 3l6 6M9 3L3 9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <!-- macOS：左上角信号灯 -->
+    <div class="dshkit-trafficlights" id="trafficlights">
+      <button type="button" id="tl-close" class="dshkit-tl-close" title="关闭" aria-label="关闭"></button>
+      <button type="button" id="tl-min" class="dshkit-tl-min" title="最小化" aria-label="最小化"></button>
+      <button type="button" id="tl-max" class="dshkit-tl-max" title="最大化" aria-label="最大化"></button>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

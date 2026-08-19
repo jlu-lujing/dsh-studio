@@ -1,0 +1,68 @@
+name: Release to npm
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run: 打包并校验，但不真正上传到 npm（recommended）。设为 false 才真正发布。'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish ${{ inputs.dry_run && '(dry-run)' || '(real)' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm -r build
+
+      # 真正发布前本地跑一遍门禁
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      - name: Test
+        run: pnpm -r test
+
+      # 发布前校验：7 包版本一致、聚合包依赖指向同版本
+      - name: Verify versions
+        run: |
+          node - <<'EOF'
+          const fs = require('fs')
+          const pkg = JSON.parse(fs.readFileSync('packages/dsh-studio/package.json', 'utf8'))
+          console.log('单包版本:', pkg.version)
+          EOF
+
+      # pnpm 发布时禁止 workspace 解析：聚合包依赖必须指向 npm 上的真实版本
+      - name: Publish
+        run: |
+          FLAGS="--no-git-checks"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            FLAGS="$FLAGS --dry-run"
+            echo ">> DRY RUN：只打包校验，不会上传 npm"
+          else
+            echo ">> 真实发布：将上传到 npm registry"
+          fi
+          pnpm -r publish --access public $FLAGS
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

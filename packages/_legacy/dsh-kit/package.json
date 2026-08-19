@@ -1,0 +1,68 @@
+{
+  "name": "dsh-kit",
+  "version": "0.2.1",
+  "description": "DSH 傻瓜式插件全家桶聚合包 - 装一个包，所有功能开箱即用",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "bin": {
+    "dsh-kit": "bin/dsh-kit.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/*.js",
+    "lib/*.js.map",
+    "bin/dsh-kit.mjs",
+    "cordis.patch.yml",
+    "lib/types/**/*.d.ts",
+    "preset/**/*",
+    "ecosystem-fallback.json"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "dependencies": {
+    "dsh-kit-input-history": "^0.2.1",
+    "dsh-kit-lan-auth": "^0.2.1",
+    "dsh-kit-notifier": "^0.2.1",
+    "dsh-kit-scheduler": "^0.2.1",
+    "dsh-kit-webui": "^0.2.1",
+    "dsh-kit-worktree": "^0.2.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-host-webserver": "^0.1.0-rc.6"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/cordis-plugin-loader": "1.0.2",
+    "@deepseek-ai/dsh-host-webserver": "^0.1.0-rc.6",
+    "@types/node": "^26.2.0",
+    "typescript": "^5.6.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}

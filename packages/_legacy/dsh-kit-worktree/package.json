@@ -1,0 +1,51 @@
+{
+  "name": "dsh-kit-worktree",
+  "version": "0.2.1",
+  "description": "DSH git worktree 管理（dsh-kit 全家桶功能包，由 dsh-kit 聚合包挂载）——封装 `git worktree` 子命令：列表/新建/删除/清理 + 会话归属（main/分支 worktree），默认落盘到仓库内被忽略的 .dsh/worktree",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/*.js",
+    "lib/*.js.map",
+    "lib/*.d.ts",
+    "lib/*.d.ts.map"
+  ],
+  "scripts": {
+    "build": "tsc -b && tsdown",
+    "typecheck": "tsc -b --noEmit",
+    "test": "tsx --test test/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-host-webserver": "^0.1.0-rc.6"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-host-webserver": "^0.1.0-rc.6",
+    "@types/node": "^26.2.0",
+    "typescript": "^5.6.0"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-ui-workspace",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}

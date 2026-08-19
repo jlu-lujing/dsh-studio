@@ -1,0 +1,35 @@
+# Node
+node_modules/
+dist/
+lib/
+*.tsbuildinfo
+
+# DSH runtime artifacts
+refs/
+.dsh/
+sessions/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Build output
+coverage/
+.cache/
+
+# J-Space skill workspace
+.jspace/
+.scratch-*/

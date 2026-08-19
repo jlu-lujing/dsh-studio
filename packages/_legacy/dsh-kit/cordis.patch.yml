@@ -1,0 +1,76 @@
+# dsh-kit aggregate patch layer.
+#
+# Installing dsh-kit installs the whole family: it declares the six feature
+# packages (dsh-kit-notifier / dsh-kit-scheduler / dsh-kit-lan-auth /
+# dsh-kit-input-history / dsh-kit-webui / dsh-kit-worktree) as npm
+# dependencies (hoisted into the profile's top-level node_modules), and this
+# patch inserts all seven rows below. The
+# mechanism mirrors how the official
+# dsh-base aggregate works: the bundle's dependencies make the packages
+# resolvable by the Loader, and the bundle's own patch declares the rows.
+#
+# The preset feature (TurboBoost Mode / 满血模式, formerly the separate
+# dsh-anchored-standard/boost-mode package) is NOT a loader row anymore: dsh-kit bundles
+# the preset files and
+# manages them inline (auto-install on enable + store import/delete routes),
+# so it needs no resolvable npm package and has no row here.
+#
+# Each feature row carries a dynamic `disabled` expression with two conditions:
+#   1. feature state (state file) — `dsh-kit disable X` / store panel, honored
+#      on the next load without editing any patch;
+#   2. RESOLVABILITY GUARD — if the feature package is not resolvable from the
+#      profile (e.g. only dsh-kit was installed so far), the row is disabled so
+#      a bare `dsh-kit` install boots clean; the store panel then offers the
+#      one-click install for the missing family.
+# The expressions are self-contained (Node builtins `fs`/`module` via
+# process.getBuiltinModule, path via `dshHomePath` / `ctx.baseUrl`) so they
+# are correct from the first loader pass, before the dsh-kit host plugin
+# applies.
+#
+# The feature packages no longer insert themselves (cordis rejects duplicate
+# loader entry ids within one update); dsh-kit owns every row here. A feature
+# disabled via its row above simply does not load, while its package stays
+# installed — the store panel / CLI can re-enable it any time.
+
+# The in-app (browse) directory picker is used everywhere — including local
+# loopback — because the native picker is unreliable on some platforms
+# (Windows: "win32 folder dialog worker exited before reporting a result")
+# and invisible to LAN browsers. We therefore always disable the official
+# `directory-picker` auto row; dsh-kit's host apply mounts the browse pair
+# (backend + client surface) for every boot, so both local and remote users
+# get a web picker with no profile edits.
+- id: directory-picker
+  disabled: true
+
+# The official "download session log" header button is a rarely used duplicate;
+# disable it globally (it comes from @deepseek-ai/dsh-session-log-export).
+- id: session-log-download
+  disabled: true
+
+- insert:
+    - id: dsh-kit
+      name: dsh-kit
+
+    - id: dsh-kit-notifier
+      name: dsh-kit-notifier
+      disabled: !!js "( (function () { try { var mod = process.getBuiltinModule('module'); var req = mod.createRequire((typeof ctx !== 'undefined' && ctx.baseUrl) ? ctx.baseUrl : process.cwd() + '/'); req.resolve('dsh-kit-notifier'); } catch (e) { return true; } try { var fs = process.getBuiltinModule('fs'); var s = JSON.parse(fs.readFileSync(dshHomePath('dsh-kit/state.json'), 'utf8')); return s.features['dsh-kit-notifier'] === false; } catch (e) { return false; } })() )"
+
+    - id: dsh-kit-scheduler
+      name: dsh-kit-scheduler
+      disabled: !!js "( (function () { try { var mod = process.getBuiltinModule('module'); var req = mod.createRequire((typeof ctx !== 'undefined' && ctx.baseUrl) ? ctx.baseUrl : process.cwd() + '/'); req.resolve('dsh-kit-scheduler'); } catch (e) { return true; } try { var fs = process.getBuiltinModule('fs'); var s = JSON.parse(fs.readFileSync(dshHomePath('dsh-kit/state.json'), 'utf8')); return s.features['dsh-kit-scheduler'] === false; } catch (e) { return false; } })() )"
+
+    - id: dsh-kit-lan-auth
+      name: dsh-kit-lan-auth
+      disabled: !!js "( (function () { try { var mod = process.getBuiltinModule('module'); var req = mod.createRequire((typeof ctx !== 'undefined' && ctx.baseUrl) ? ctx.baseUrl : process.cwd() + '/'); req.resolve('dsh-kit-lan-auth'); } catch (e) { return true; } try { var fs = process.getBuiltinModule('fs'); var s = JSON.parse(fs.readFileSync(dshHomePath('dsh-kit/state.json'), 'utf8')); return s.features['dsh-kit-lan-auth'] !== true; } catch (e) { return true; } })() )"
+
+    - id: dsh-kit-input-history
+      name: dsh-kit-input-history
+      disabled: !!js "( (function () { try { var mod = process.getBuiltinModule('module'); var req = mod.createRequire((typeof ctx !== 'undefined' && ctx.baseUrl) ? ctx.baseUrl : process.cwd() + '/'); req.resolve('dsh-kit-input-history'); } catch (e) { return true; } try { var fs = process.getBuiltinModule('fs'); var s = JSON.parse(fs.readFileSync(dshHomePath('dsh-kit/state.json'), 'utf8')); return s.features['dsh-kit-input-history'] === false; } catch (e) { return false; } })() )"
+
+    - id: dsh-kit-webui
+      name: dsh-kit-webui
+      disabled: !!js "( (function () { try { var mod = process.getBuiltinModule('module'); var req = mod.createRequire((typeof ctx !== 'undefined' && ctx.baseUrl) ? ctx.baseUrl : process.cwd() + '/'); req.resolve('dsh-kit-webui'); } catch (e) { return true; } try { var fs = process.getBuiltinModule('fs'); var s = JSON.parse(fs.readFileSync(dshHomePath('dsh-kit/state.json'), 'utf8')); return s.features['dsh-kit-webui'] === false; } catch (e) { return false; } })() )"
+
+    - id: dsh-kit-worktree
+      name: dsh-kit-worktree
+      disabled: !!js "( (function () { try { var mod = process.getBuiltinModule('module'); var req = mod.createRequire((typeof ctx !== 'undefined' && ctx.baseUrl) ? ctx.baseUrl : process.cwd() + '/'); req.resolve('dsh-kit-worktree'); } catch (e) { return true; } try { var fs = process.getBuiltinModule('fs'); var s = JSON.parse(fs.readFileSync(dshHomePath('dsh-kit/state.json'), 'utf8')); return s.features['dsh-kit-worktree'] === false; } catch (e) { return false; } })() )"

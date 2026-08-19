@@ -1,0 +1,27 @@
+{
+  "name": "dsh-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DSH Studio —— 完整的桌面客户端：Electron 壳 + 内置 dsh 运行时 + 全家桶插件单包",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r build",
+    "build:client": "node scripts/build-client-once.mjs",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "dev": "tsx scripts/dev.ts",
+    "add": "dsh plugin --profile web add -w",
+    "desktop:dev": "cd apps/desktop && npm run dev",
+    "desktop:build": "cd apps/desktop && npm run build",
+    "desktop:pack": "cd apps/desktop && npm run pack",
+    "desktop:dist": "cd apps/desktop && npm run dist",
+    "runtime:build": "cd apps/dsh-runtime && node scripts/build.mjs",
+    "runtime:smoke": "cd apps/dsh-runtime && node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsdown": "^0.11.13",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,13 @@
+# 依赖
+node_modules/
+
+# 构建产物
+out/
+dist/
+*.log
+
+# 出厂 dsh-runtime（构建期由 afterPack 注入 app，见 docs/DESKTOP.md §6.1）
+resources/dsh-runtime/
+
+# 本地开发运行时（自测时手动解压）
+resources/dsh-runtime-*.zip

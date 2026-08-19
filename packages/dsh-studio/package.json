@@ -1,0 +1,90 @@
+{
+  "name": "dsh-studio",
+  "version": "0.2.1",
+  "description": "DSH Studio —— 基于 DeepSeek Harness (dsh) 定制，桌面助手全家桶单包（聚合 + 六个功能子模块）",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "bin": {
+    "dsh-studio": "bin/dsh-studio.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": "./lib/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./notifier": {
+      "types": "./lib/notifier/index.d.ts",
+      "default": "./lib/notifier/index.js"
+    },
+    "./scheduler": {
+      "types": "./lib/scheduler/index.d.ts",
+      "default": "./lib/scheduler/index.js"
+    },
+    "./lan-auth": {
+      "types": "./lib/lan-auth/index.d.ts",
+      "default": "./lib/lan-auth/index.js"
+    },
+    "./input-history": {
+      "types": "./lib/input-history/index.d.ts",
+      "default": "./lib/input-history/index.js"
+    },
+    "./webui": {
+      "types": "./lib/webui/index.d.ts",
+      "default": "./lib/webui/index.js"
+    },
+    "./worktree": {
+      "types": "./lib/worktree/index.d.ts",
+      "default": "./lib/worktree/index.js"
+    }
+  },
+  "files": [
+    "lib/*.js",
+    "lib/*.js.map",
+    "bin/dsh-studio.mjs",
+    "cordis.patch.yml",
+    "lib/types/**/*.d.ts",
+    "preset/**/*",
+    "ecosystem-fallback.json"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --noEmit",
+    "build:client": "tsdown",
+    "build:host": "tsc -b",
+    "test": "tsx --test test/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-host-webserver": "^0.1.0-rc.6",
+    "@deepseek-ai/dsh-session": "^0.1.0-rc.6"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/cordis-plugin-loader": "1.0.2",
+    "@deepseek-ai/dsh-host-webserver": "^0.1.0-rc.6",
+    "@types/node": "^26.2.0",
+    "typescript": "^5.6.0",
+    "tsx": "^4.19.0",
+    "tsdown": "^0.11.13"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MIT"
+}

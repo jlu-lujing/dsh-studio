@@ -1,0 +1,4 @@
+packages:
+  - 'packages/*'
+  - '!packages/_legacy'
+  - '!packages/_legacy/**'
