@@ -1,0 +1,3 @@
+name: J-Space Mode
+description: J-Space Mode（标准模式 + J-Space 认知协议）：基于 dsh-anchored-standard 二阶段引导（Minimal 工具对 → 首次持久晋升后开放完整工具），并在 preset 内联 J-Space Cognitive Suite V3.6——深度推理/长任务/工具重任务/验证恢复时用 skill_load 按需加载。
+order: 6

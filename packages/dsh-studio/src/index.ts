@@ -6,7 +6,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 
 import { createStore } from './state.ts'
 import { FEATURES, type FeatureId } from './store.ts'
-import { installPreset, uninstallPreset, isInstalled as isPresetInstalled, PRESET_ID } from './preset.ts'
+import { installPreset, uninstallPreset, isInstalled as isPresetInstalled, PRESETS, type PresetId } from './preset.ts'
 import { createEcosystemController } from './ecosystem.ts'
 import { listArchived, restoreSession, deleteSession, deleteAllArchived } from './archive.ts'
 import { apply as applyNotifier } from './notifier/index.ts'
@@ -15,8 +15,19 @@ import { apply as applyLanAuth } from './lan-auth/index.ts'
 import { apply as applyWorktree } from './worktree/index.ts'
 import { apply as applyWebui } from './webui/index.ts'
 
-/** Feature id of the inline preset feature (matches store.ts / state file). */
-const PRESET_FEATURE_ID = `dsh-${PRESET_ID}` as const
+/** Feature id → preset id：installable 功能的 id 形如 `dsh-<presetId>`。 */
+function presetIdForFeature(featureId: string): PresetId | undefined {
+  for (const id of Object.keys(PRESETS) as PresetId[]) {
+    if (featureId === `dsh-${id}`) return id
+  }
+  return undefined
+}
+
+/** 所有 installable 功能对应的 preset id（featureId → presetId）。 */
+const INSTALLABLE_PRESETS: Array<{ featureId: string; presetId: PresetId }> = []
+for (const id of Object.keys(PRESETS) as PresetId[]) {
+  INSTALLABLE_PRESETS.push({ featureId: `dsh-${id}`, presetId: id })
+}
 
 /** Cordis plugin name. */
 export const name = 'dsh-studio'
@@ -123,13 +134,15 @@ export function apply(ctx: Context, config: Config = {}): void {
   // package) is now managed inline by dsh-studio. When enabled, install the
   // bundled preset files idempotently (non-destructive: never overwrite an
   // existing target). Disabling does not auto-remove, so user data is kept.
-  const presetFeature = FEATURES.find(f => f.installable === true && f.id === PRESET_FEATURE_ID)
-  if (presetFeature && store.isEnabled(presetFeature.id)) {
-    try {
-      installPreset({ home })
-    } catch {
-      // Non-fatal: installation must not take down host startup; the store
-      // panel lets the user retry manually.
+  for (const { featureId, presetId } of INSTALLABLE_PRESETS) {
+    const feature = FEATURES.find(f => f.id === featureId && f.installable === true)
+    if (feature && store.isEnabled(feature.id)) {
+      try {
+        installPreset({ id: presetId, home })
+      } catch {
+        // Non-fatal: installation must not take down host startup; the store
+        // panel lets the user retry manually.
+      }
     }
   }
 
@@ -153,8 +166,8 @@ export function apply(ctx: Context, config: Config = {}): void {
       enabled: store.isEnabled(f.id),
       installable: f.installable === true,
       togglable: f.togglable !== false,
-      installed: f.installable === true
-        ? isPresetInstalled({ home })
+      installed: f.installable === true && presetIdForFeature(f.id) !== undefined
+        ? isPresetInstalled({ id: presetIdForFeature(f.id)!, home })
         : false,
     })),
     featureState: id => store.isEnabled(id),
@@ -276,7 +289,9 @@ export function apply(ctx: Context, config: Config = {}): void {
       const feature = FEATURES.find(f => f.id === id && f.installable === true)
       if (!feature) return sendJson(res, 404, { error: `unknown or non-installable feature "${id}"` })
       try {
-        const result = installPreset({ home })
+        const presetId = presetIdForFeature(id)
+        if (presetId === undefined) return sendJson(res, 400, { error: `no preset mapped for feature "${id}"` })
+        const result = installPreset({ id: presetId, home })
         // Installing the artifact implies the feature should be enabled, so it
         // stays installed across restarts.
         service.setEnabled(id, true)
@@ -294,7 +309,9 @@ export function apply(ctx: Context, config: Config = {}): void {
       const feature = FEATURES.find(f => f.id === id && f.installable === true)
       if (!feature) return sendJson(res, 404, { error: `unknown or non-installable feature "${id}"` })
       try {
-        const result = uninstallPreset({ home })
+        const presetId = presetIdForFeature(id)
+        if (presetId === undefined) return sendJson(res, 400, { error: `no preset mapped for feature "${id}"` })
+        const result = uninstallPreset({ id: presetId, home })
         // Removing the artifact also disables the feature so a later restart
         // does not silently re-install it (apply only installs while enabled).
         service.setEnabled(id, false)

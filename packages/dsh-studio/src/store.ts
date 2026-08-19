@@ -62,4 +62,12 @@ export const FEATURES: readonly Feature[] = [
     installable: true,
     togglable: false,
   },
+  {
+    id: 'dsh-jspace-mode',
+    name: 'J-Space Mode',
+    description: 'J-Space Mode（标准模式 + J-Space 认知协议）：基于 dsh-anchored-standard 二阶段引导，并在 preset 内联 J-Space Cognitive Suite（persona 提示 + skill_search/skill_load 可按需加载）；导入到 ~/.dsh/.agent-presets/jspace-mode',
+    defaultEnabled: false,
+    installable: true,
+    togglable: false,
+  },
 ]

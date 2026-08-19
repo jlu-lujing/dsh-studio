@@ -49,7 +49,7 @@ Electron 桌面应用：
 单一 npm 包，聚合：
 - 聚合底座（功能商店、归档会话、生态目录、preset 管理器）；
 - 六个功能子模块：notifier / scheduler / worktree / lan-auth / input-history / webui（主题商店）；
-- 内置满血模式（Boost Mode）preset（基于 dsh-anchored-standard）。
+- 内置多模式 agent preset：Boost Mode（基于 dsh-anchored-standard）+ J-Space Mode（标准模式 + 内联 J-Space Cognitive Suite）。
 
 ### 根 — 开发工具链（不发布）
 

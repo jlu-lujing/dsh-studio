@@ -91,6 +91,12 @@ DSH Studio 桌面端是一个 Electron 应用（方案与演进见 [`docs/DESKTO
 - 基于 [dsh-anchored-standard](https://github.com/xiaobright/dsh-anchored-standard) 二阶段 agent preset：**Minimal 引导 → 首次持久晋升信号后开放完整工具目录**；
 - 内置 `packages/dsh-studio/preset/`，默认开启，自动导入 `~/.dsh/.agent-presets/boost-mode`；更重的工具按需 “discovery” 解锁（`dev_tool_search` / `skill_search` / `skill_load`）。
 
+### 🧠 J-Space Mode（标准模式 + J-Space）· 内置 preset
+- **基于 dsh-anchored-standard 二阶段引导**（与 Boost Mode 同样的 Minimal 工具对 → 首次持久晋升后开放完整工具目录），并在 preset 内联 **J-Space Cognitive Suite V3.6**；
+- **J-Space 随 preset 内联**：安装到 `~/.dsh/.agent-presets/jspace-mode`，用 `skill_search` / `skill_load` 按需加载，不触碰 `~/.dsh/skills`；
+- persona 引导模型在深度推理/长任务/工具重任务/验证恢复时用 `skill_load j-space` 按需加载；
+- 默认关闭，可在功能商店一键安装/删除。
+
 ---
 
 ## 🗂️ 仓库结构
