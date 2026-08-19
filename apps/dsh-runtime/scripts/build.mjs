@@ -129,13 +129,16 @@ rmIfExists(join(destTree, '@deepseek-ai', 'dsh', 'node_modules'))
 /* ------------------------------------------------------------------ */
 
 // DSH Studio 单包（7 合 1：聚合 + 六个功能）。
-const FAMILY_PACKAGES = ['dsh-studio']
+// npm 包名：@dsh-kit/dsh-studio（scope @dsh-kit 为我们的组织）。
+const FAMILY_PACKAGES = ['@dsh-kit/dsh-studio']
 
 // 仓库根 = <apps/dsh-runtime>/../.. ；源码包位于 <root>/packages/<name>
 const repoRoot = resolve(pkgRoot, '..', '..')
 const familyVersions = {}
 for (const name of FAMILY_PACKAGES) {
-  const srcDir = join(repoRoot, 'packages', name)
+  // scoped 名 @dsh-kit/dsh-studio → 源码目录 packages/dsh-studio（取最后一段）
+  const srcBase = name.startsWith('@') ? name.split('/')[1] : name
+  const srcDir = join(repoRoot, 'packages', srcBase)
   const pkgJson = join(srcDir, 'package.json')
   if (!existsSync(pkgJson)) {
     console.warn(`[build] family pkg missing (skipped): ${srcDir}`)

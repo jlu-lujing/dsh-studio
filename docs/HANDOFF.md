@@ -139,7 +139,7 @@ dsh plugin --profile web add -w <path|pkg>
 dsh plugin --profile web remove <name>
 
 # DSH Studio 全家桶安装（发布后 = 装 dsh-studio 即全家桶）
-dsh plugin --profile <p> add -w dsh-studio
+dsh plugin --profile <p> add -w @dsh-kit/dsh-studio
 
 # 本地源码（link: 不解析依赖：6 包一起 link）
 dsh plugin --profile <p> add -w \

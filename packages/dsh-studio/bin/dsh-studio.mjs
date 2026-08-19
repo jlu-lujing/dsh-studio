@@ -42,7 +42,7 @@ if (cmd === 'install') {
   // Install the whole family into a profile. This command only makes sense on
   // a system that ALREADY has the `dsh-studio` CLI installed (its bin is on
   // PATH) — a brand-new machine must first add dsh-studio itself via:
-  //   dsh plugin --profile <name> add -w dsh-studio
+  //   dsh plugin --profile <name> add -w @dsh-kit/dsh-studio
   // Under the hood this is exactly that same command: dsh-studio declares the
   // four feature packages as npm dependencies (hoisted into the profile), and
   // the 满血模式 preset is bundled inside dsh-studio (no separate package).
@@ -55,7 +55,7 @@ if (cmd === 'install') {
     if (a === '--profile') { profile = rest[++i]; continue }
     passthrough.push(a)
   }
-  const dshArgs = ['plugin', '--profile', profile, 'add', '-w', ...passthrough, 'dsh-studio']
+  const dshArgs = ['plugin', '--profile', profile, 'add', '-w', ...passthrough, '@dsh-kit/dsh-studio']
   console.log(`dsh-studio: installing family into profile "${profile}": dsh-studio + 4 feature deps`)
   const res = spawnSync('dsh', dshArgs, { stdio: 'inherit' })
   process.exit(res.status ?? 1)

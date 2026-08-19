@@ -36,7 +36,7 @@ export const name = 'dsh-studio'
 export const inject = ['webServer', 'loader']
 
 /** The single install target of the one-click install: its npm dependencies bring the rest. */
-const INSTALL_PACKAGE = 'dsh-studio'
+const INSTALL_PACKAGE = '@dsh-kit/dsh-studio'
 
 /** Browse interaction pair, mirroring directory-picker-auto's composition vocabulary. */
 const BROWSE_PAIR = [
@@ -238,7 +238,7 @@ export function apply(ctx: Context, config: Config = {}): void {
     // POST /dsh-studio/store/install  — one-click install the whole family.
     // Mirrors the `dsh-studio install` CLI: the only install target is dsh-studio.
     // dsh-studio declares the four feature packages as npm dependencies, so
-    // `dsh plugin --profile <p> add -w dsh-studio` installs them through the
+    // `dsh plugin --profile <p> add -w @dsh-kit/dsh-studio` installs them through the
     // profile's dependency tree and the aggregate patch mounts all five rows.
     // The feature packages are plain libraries (no dsh.bundle layer is added).
     // Requires the `dsh` CLI on PATH; applies to the configured installProfile

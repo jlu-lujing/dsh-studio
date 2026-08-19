@@ -136,7 +136,7 @@ DSH Studio 是一个**完整的桌面应用**，用户无需安装 dsh / Node �
 如果你已经有一个 dsh 环境，也可以把全家桶作为 npm 插件装进某个 profile：
 
 ```sh
-dsh plugin --profile web add -w @dsh-studio/dsh-studio
+dsh plugin --profile web add -w @dsh-kit/dsh-studio
 ```
 
 ### 方式三：本地源码调试
@@ -167,7 +167,7 @@ dsh-studio list                                     # 列出所有功能及状�
 dsh-studio enable dsh-studio-notifier              # 启用桌面通知
 dsh-studio disable dsh-studio-scheduler            # 停用定时任务
 dsh-studio install [--profile <p>]                  # 把全家桶装进指定 profile（默认 web）
-# 注：需要系统里已有 dsh-studio 命令；全新系统请用: dsh plugin --profile web add -w @dsh-studio/dsh-studio
+# 注：需要系统里已有 dsh-studio 命令；全新系统请用: dsh plugin --profile web add -w @dsh-kit/dsh-studio
 ```
 
 - 状态保存在 `~/.dsh/dsh-studio/state.json`，**重启后保留**。

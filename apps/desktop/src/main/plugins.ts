@@ -7,7 +7,7 @@
  *
  * 实现：
  *   - 检测：读 <profile>/package.json 的 dependencies 是否含 dsh-studio；
- *   - 安装：spawn dsh 的 `plugin --profile <name> add -w dsh-studio`（与用户手动
+ *   - 安装：spawn dsh 的 `plugin --profile <name> add -w @dsh-kit/dsh-studio`（与用户手动
  *     命令完全一致，dsh-studio 会带出其全部 feature 子包依赖 + 内置满血模式 preset）；
  *   - 该命令内部 forward 给系统 pnpm（dsh-runtime 不带 pnpm，需 PATH 里有 pnpm）；
  *   - 自动装是「尽力而为」：失败仅记录日志，不阻塞 dsh 启动、不弹错误框。
@@ -21,7 +21,7 @@ import { spawn } from 'node:child_process'
 const INSTALL_TIMEOUT_MS = 120_000
 
 /** DSH Studio 单包（7 合 1：聚合 + 六个功能）。 */
-const FAMILY_PACKAGES = ['dsh-studio']
+const FAMILY_PACKAGES = ['@dsh-kit/dsh-studio']
 
 export interface FamilyCheckOptions {
   /** 要装到的 profile 名（默认 web）。 */
@@ -40,7 +40,7 @@ export interface FamilyCheckOptions {
 export function familyBundledInRuntime(runtimeDir: string | undefined): boolean {
   if (!runtimeDir) return false
   try {
-    const id = join(runtimeDir, 'node_modules', 'dsh-studio', 'package.json')
+    const id = join(runtimeDir, 'node_modules', FAMILY_PACKAGES[0], 'package.json')
     if (!existsSync(id)) return false
     // 校验运行时 metadata 也声明了 family（版本锁定标记）
     const meta = JSON.parse(readFileSync(join(runtimeDir, 'runtime.json'), 'utf8')) as { family?: Record<string, string> }
@@ -62,11 +62,11 @@ function profileDeps(profilesDir: string, profile: string): Record<string, strin
 
 /** 该 profile 是否已装 dsh-studio 全家桶（以 dependencies 里有 dsh-studio 为准）。 */
 export function familyInstalled(opts: FamilyCheckOptions): boolean {
-  return 'dsh-studio' in profileDeps(opts.profilesDir, opts.profile)
+  return FAMILY_PACKAGES.some((name) => name in profileDeps(opts.profilesDir, opts.profile))
 }
 
 /**
- * spawn dsh 的 `plugin --profile <name> add -w dsh-studio` 把全家桶装进指定 profile。
+ * spawn dsh 的 `plugin --profile <name> add -w @dsh-kit/dsh-studio` 把全家桶装进指定 profile。
  * PATH 里注入系统 pnpm 所在目录（dsh plugin 内部会 spawnSync("pnpm")）。
  *
  * @returns 安装成功与否。
@@ -99,7 +99,7 @@ export async function installFamilyTo(
     env.PATH = `${pnpmDir}:${env.PATH ? env.PATH : ''}`
   }
 
-  const args = [dshBin, 'plugin', '--profile', profile, 'add', '-w', 'dsh-studio']
+  const args = [dshBin, 'plugin', '--profile', profile, 'add', '-w', '@dsh-kit/dsh-studio']
   line(`family: installing dsh-studio into profile "${profile}" via dsh plugin (node=${nodeBin})`)
 
   return await new Promise<boolean>((resolve) => {
@@ -159,7 +159,7 @@ export function ensureFamilyInstalled(nodeBin: string, dshBin: string, opts: Fam
     ? installFamilyFromRuntime(opts.runtimeDir!, opts)
     : installFamilyTo(nodeBin, dshBin, opts)
   void job.then((ok) => {
-    opts.log?.(`family: ${ok ? 'ready' : 'failed — user can install manually via dsh plugin --profile ${opts.profile} add -w dsh-studio'}`)
+    opts.log?.(`family: ${ok ? 'ready' : 'failed — user can install manually via dsh plugin --profile ${opts.profile} add -w @dsh-kit/dsh-studio'}`)
   })
 }
 
@@ -223,8 +223,8 @@ export async function installFamilyFromRuntime(
       }
     }
     if (!pkg.bundles) pkg.bundles = {}
-    if (!pkg.bundles.includes?.('dsh-studio')) {
-      pkg.bundles = Array.isArray(pkg.bundles) ? [...new Set([...pkg.bundles, 'dsh-studio'])] : ['dsh-studio']
+    if (!pkg.bundles.includes?.('@dsh-kit/dsh-studio')) {
+      pkg.bundles = Array.isArray(pkg.bundles) ? [...new Set([...pkg.bundles, '@dsh-kit/dsh-studio'])] : ['@dsh-kit/dsh-studio']
     }
     pkg.dependencies = deps
     writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n')

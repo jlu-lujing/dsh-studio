@@ -94,7 +94,7 @@ dsh-kit/                                    # 仓库目录名（保留历史）
 
 ```sh
 # 发布后：装 dsh-studio 一个包 = 全家桶
-dsh plugin --profile web add -w dsh-studio
+dsh plugin --profile web add -w @dsh-kit/dsh-studio
 
 # 本地源码（单包 link）
 dsh plugin --profile dev add -w ~/workspace/dsh-studio/packages/dsh-studio
@@ -172,7 +172,7 @@ dsh-studio 的 host（`src/index.ts`）除了提供 store 服务，还注册了�
 - slot：`settings.section`（id `dsh-studio-store`，priority 40）；
 - 展示每个功能的名称/描述/状态；可启停（`togglable`）功能有「启用/停用」按钮；
 - 「满血模式」是 `installable` 但 `togglable: false`——只提供「安装/删除」，不提供启停按钮（启停由安装状态直接决定）；
-- 底部「一键安装全」= `POST /dsh-studio/store/install` → 执行 `dsh plugin --profile <p> add -w dsh-studio`。
+- 底部「一键安装全」= `POST /dsh-studio/store/install` → 执行 `dsh plugin --profile <p> add -w @dsh-kit/dsh-studio`。
 
 ### 6.2 内置 agent preset（多模式）
 
@@ -331,7 +331,7 @@ token 通过 webui 设置页（settings.section「局域网鉴权」）或本机
 
 - **dsh-runtime**：内置 dsh 独立运行时（pin `@deepseek-ai/dsh` 0.1.0-rc.6），自带 Node（目标态方案 B）+ 全依赖树；当前 MVP 用 Electron 内置 Node（方案 A）。
 - **desktop 壳**：Electron（electron-vite + electron-builder）——探测/复用 3080、self-spawn `web --port 0`、就绪 URL、退出清理、托盘、开机自启、错误页、更新链路（feed + sha512 + 原子切换 + 回滚）、窗口图标。
-- **首启自动装全家桶**：仅自管实例，后台检测 web profile 的 dependencies 是否含 `dsh-studio`，未装则 `dsh plugin --profile web add -w dsh-studio`（尽力而为，失败仅记日志）。
+- **首启自动装全家桶**：仅自管实例，后台检测 web profile 的 dependencies 是否含 `@dsh-kit/dsh-studio`，未装则 `dsh plugin --profile web add -w @dsh-kit/dsh-studio`（尽力而为，失败仅记日志）。
 
 ## 14. CI 与发布
 
